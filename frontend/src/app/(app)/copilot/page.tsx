@@ -291,7 +291,7 @@ export default function CopilotPage() {
           <div className="flex items-center gap-2">
             <Database className="size-4 text-muted-foreground" />
             <Select
-              value={dataset?.id}
+              value={dataset?.id ?? null}
               onValueChange={(v) => setDatasetId(v as string)}
             >
               <SelectTrigger size="sm" className="w-44">

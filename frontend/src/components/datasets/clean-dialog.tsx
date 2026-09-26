@@ -49,7 +49,7 @@ function ColumnSelect({
   columns: DatasetColumn[];
 }) {
   return (
-    <Select value={value || undefined} onValueChange={(v) => onChange(v as string)}>
+    <Select value={value || null} onValueChange={(v) => onChange(v as string)}>
       <SelectTrigger size="sm" className="w-44">
         <SelectValue placeholder="Select column" />
       </SelectTrigger>

@@ -215,7 +215,7 @@ export default function DashboardBuilderPage() {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <Label>Dataset</Label>
-                        <Select value={selDataset?.id} onValueChange={(v) => setWDataset(v as string)}>
+                        <Select value={selDataset?.id ?? null} onValueChange={(v) => setWDataset(v as string)}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {readyDatasets.map((d) => (
@@ -232,7 +232,7 @@ export default function DashboardBuilderPage() {
                     {wType === "kpi" && (
                       <div className="flex flex-col gap-1.5">
                         <Label>KPI</Label>
-                        <Select value={wKpi ?? kpis?.[0]?.id} onValueChange={(v) => setWKpi(v as string)}>
+                        <Select value={wKpi ?? kpis?.[0]?.id ?? null} onValueChange={(v) => setWKpi(v as string)}>
                           <SelectTrigger><SelectValue placeholder="Select KPI" /></SelectTrigger>
                           <SelectContent>
                             {(kpis ?? []).map((k) => (
@@ -249,7 +249,7 @@ export default function DashboardBuilderPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1.5">
                           <Label>Date column</Label>
-                          <Select value={wDate ?? dateCols[0]?.normalizedName} onValueChange={(v) => setWDate(v as string)}>
+                          <Select value={wDate ?? dateCols[0]?.normalizedName ?? null} onValueChange={(v) => setWDate(v as string)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {dateCols.map((c) => (
@@ -260,7 +260,7 @@ export default function DashboardBuilderPage() {
                         </div>
                         <div className="flex flex-col gap-1.5">
                           <Label>Metric</Label>
-                          <Select value={wMetric ?? metricCols[0]?.normalizedName} onValueChange={(v) => setWMetric(v as string)}>
+                          <Select value={wMetric ?? metricCols[0]?.normalizedName ?? null} onValueChange={(v) => setWMetric(v as string)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {metricCols.map((c) => (
@@ -275,7 +275,7 @@ export default function DashboardBuilderPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1.5">
                           <Label>Dimension</Label>
-                          <Select value={wDim ?? dimCols[0]?.normalizedName} onValueChange={(v) => setWDim(v as string)}>
+                          <Select value={wDim ?? dimCols[0]?.normalizedName ?? null} onValueChange={(v) => setWDim(v as string)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {dimCols.map((c) => (
@@ -286,7 +286,7 @@ export default function DashboardBuilderPage() {
                         </div>
                         <div className="flex flex-col gap-1.5">
                           <Label>Metric</Label>
-                          <Select value={wMetric ?? metricCols[0]?.normalizedName} onValueChange={(v) => setWMetric(v as string)}>
+                          <Select value={wMetric ?? metricCols[0]?.normalizedName ?? null} onValueChange={(v) => setWMetric(v as string)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {metricCols.map((c) => (

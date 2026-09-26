@@ -245,7 +245,7 @@ export default function DashboardPage() {
 
       <div className="flex flex-wrap items-center gap-3">
         <Select
-          value={dataset?.id}
+          value={dataset?.id ?? null}
           onValueChange={(v) => {
             setDatasetId(v as string);
             setMetric(null);
@@ -262,7 +262,7 @@ export default function DashboardPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={metricCol} onValueChange={(v) => setMetric(v as string)}>
+        <Select value={metricCol ?? null} onValueChange={(v) => setMetric(v as string)}>
           <SelectTrigger size="sm" className="w-40">
             <SelectValue placeholder="Metric" />
           </SelectTrigger>

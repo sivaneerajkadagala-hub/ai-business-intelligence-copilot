@@ -210,7 +210,7 @@ export default function AnalyticsPage() {
                 <div className="flex flex-col gap-1.5">
                   <Label>Dataset</Label>
                   <Select
-                    value={form.datasetId || undefined}
+                    value={form.datasetId || null}
                     onValueChange={(v) => setForm({ ...form, datasetId: v as string, column: "", dateColumn: "" })}
                   >
                     <SelectTrigger>
@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
                   <div className="flex flex-col gap-1.5">
                     <Label>Metric column</Label>
                     <Select
-                      value={form.column || undefined}
+                      value={form.column || null}
                       onValueChange={(v) => setForm({ ...form, column: v as string })}
                       disabled={form.aggregation === "count"}
                     >
@@ -267,7 +267,7 @@ export default function AnalyticsPage() {
                 <div className="flex flex-col gap-1.5">
                   <Label>Date column (for period filters)</Label>
                   <Select
-                    value={form.dateColumn || undefined}
+                    value={form.dateColumn || null}
                     onValueChange={(v) => setForm({ ...form, dateColumn: v as string })}
                   >
                     <SelectTrigger>
@@ -366,7 +366,7 @@ export default function AnalyticsPage() {
         <h2 className="text-lg font-semibold">Data explorer</h2>
         <div className="flex items-center gap-2">
           <Select
-            value={explorerDataset?.id}
+            value={explorerDataset?.id ?? null}
             onValueChange={(v) => {
               setExplorerDatasetId(v as string);
               setExplorerMetric(null);
@@ -384,7 +384,7 @@ export default function AnalyticsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={eMetric} onValueChange={(v) => setExplorerMetric(v as string)}>
+          <Select value={eMetric ?? null} onValueChange={(v) => setExplorerMetric(v as string)}>
             <SelectTrigger size="sm" className="w-36">
               <SelectValue placeholder="metric" />
             </SelectTrigger>
@@ -398,7 +398,7 @@ export default function AnalyticsPage() {
                 ))}
             </SelectContent>
           </Select>
-          <Select value={eDim} onValueChange={(v) => setExplorerDim(v as string)}>
+          <Select value={eDim ?? null} onValueChange={(v) => setExplorerDim(v as string)}>
             <SelectTrigger size="sm" className="w-36">
               <SelectValue placeholder="dimension" />
             </SelectTrigger>

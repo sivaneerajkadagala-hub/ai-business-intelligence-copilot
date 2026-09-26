@@ -35,12 +35,15 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         httponly=True,
         samesite="lax",
         secure=settings.ENVIRONMENT == "production",
-        path="/api/v1/auth",
+        # Path "/" — the Next.js proxy on :3000 inspects this cookie for
+        # session presence; a narrower path keeps it off page requests
+        # and silently bounces logged-in users back to /login.
+        path="/",
     )
 
 
 def _clear_refresh_cookie(response: Response) -> None:
-    response.delete_cookie(REFRESH_COOKIE, path="/api/v1/auth")
+    response.delete_cookie(REFRESH_COOKIE, path="/")
 
 
 def _auth_payload(user, access_token: str) -> dict:
