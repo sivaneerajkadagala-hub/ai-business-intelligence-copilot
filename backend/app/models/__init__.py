@@ -1,3 +1,4 @@
+from app.models.analytics import Dashboard, KPI, QueryHistory, QuerySource, QueryStatus
 from app.models.audit import AuditLog
 from app.models.dataset import (
     Dataset,
@@ -14,6 +15,7 @@ from app.models.user import User, UserRole
 
 __all__ = [
     "AuditLog",
+    "Dashboard",
     "Dataset",
     "DatasetColumn",
     "DatasetImport",
@@ -21,7 +23,11 @@ __all__ = [
     "DatasetVersion",
     "FileType",
     "ImportStatus",
+    "KPI",
     "PasswordResetToken",
+    "QueryHistory",
+    "QuerySource",
+    "QueryStatus",
     "RefreshToken",
     "User",
     "UserRole",

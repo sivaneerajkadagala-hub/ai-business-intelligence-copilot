@@ -8,9 +8,10 @@ Demo credentials (documented in README):
 
 from sqlalchemy import select
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, engine
 from app.core.security import hash_password
 from app.models.user import User, UserRole
+from seed.datasets import seed_datasets
 
 DEMO_PASSWORD = "Demo1234!"
 
@@ -43,3 +44,5 @@ def seed_users() -> None:
 
 if __name__ == "__main__":
     seed_users()
+    with SessionLocal() as db:
+        seed_datasets(db, engine)
