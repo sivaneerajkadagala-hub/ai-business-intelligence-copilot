@@ -25,6 +25,8 @@ uploads/
 *.csv
 *.xlsx
 !seed/**/*.csv
+backend/dev.db
+backend/test.db
 
 # Docker / infra
 pgdata/

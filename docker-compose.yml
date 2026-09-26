@@ -27,6 +27,7 @@ services:
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
       UPLOAD_DIR: /app/uploads
+      SEED_DEMO_DATA: "true"
     ports:
       - "8000:8000"
     volumes:

@@ -12,10 +12,14 @@ class Base(DeclarativeBase):
     pass
 
 
+_is_sqlite = settings.database_url.startswith("sqlite")
+
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
-    connect_args={"connect_timeout": 3},
+    connect_args=(
+        {"check_same_thread": False} if _is_sqlite else {"connect_timeout": 3}
+    ),
 )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 

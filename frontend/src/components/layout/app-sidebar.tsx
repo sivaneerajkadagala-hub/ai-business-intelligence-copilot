@@ -5,12 +5,21 @@ import { usePathname } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 
 import { NAV_GROUPS } from "@/lib/nav";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 export function SidebarContent() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const groups = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter(
+      (item) => !item.roles || (user && item.roles.includes(user.role)),
+    ),
+  })).filter((g) => g.items.length > 0);
 
   return (
     <div className="flex h-full flex-col">
@@ -27,7 +36,7 @@ export function SidebarContent() {
       </div>
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="flex flex-col gap-4">
-          {NAV_GROUPS.map((group) => (
+          {groups.map((group) => (
             <div key={group.label}>
               <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {group.label}
@@ -60,7 +69,15 @@ export function SidebarContent() {
       </ScrollArea>
       <Separator />
       <div className="p-3 text-xs text-muted-foreground">
-        v0.1.0 &middot; Phase 1 scaffold
+        {user ? (
+          <span>
+            Signed in as <span className="font-medium">{user.fullName}</span>
+            <span className="mx-1">&middot;</span>
+            <span className="capitalize">{user.role}</span>
+          </span>
+        ) : (
+          "v0.2.0"
+        )}
       </div>
     </div>
   );

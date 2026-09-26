@@ -5,8 +5,18 @@ data, profile and clean it, explore it through dashboards, ask natural-language
 questions that are compiled to validated SQL, and receive AI-generated insights,
 anomaly detection, and forecasts.
 
-> **Status:** Phase 1 (foundation) complete. Features are being built in phases —
+> **Status:** Phase 2 (auth + RBAC) complete. Features are being built in phases —
 > see the roadmap below.
+
+## Demo accounts
+
+Seeded on startup (`python -m seed.run`, idempotent). Password for all: `Demo1234!`
+
+| Email | Role | Can |
+|-------|------|-----|
+| `admin@bicopilot.dev` | admin | everything + user management + audit logs |
+| `analyst@bicopilot.dev` | analyst | datasets, dashboards, copilot, reports |
+| `viewer@bicopilot.dev` | viewer | view dashboards/reports, ask questions |
 
 ## Tech stack
 
@@ -81,7 +91,7 @@ See [.env.example](.env.example). Highlights:
 |-------|-------|--------|
 | 0 | Requirements, architecture, schema & API design | Done |
 | 1 | Monorepo scaffold, Next.js shell, FastAPI, Postgres roles, Docker | Done |
-| 2 | Authentication, RBAC, users | Next |
+| 2 | Authentication, RBAC, users | Done |
 | 3 | Dataset upload, profiling, cleaning, versioning | Planned |
 | 4 | Analytics dashboard, KPIs, charts | Planned |
 | 5 | BI Copilot: NL→SQL, validation, chat | Planned |
