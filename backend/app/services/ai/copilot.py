@@ -12,7 +12,17 @@ from app.models.analytics import QueryHistory, QuerySource, QueryStatus
 from app.models.copilot import Insight, InsightSeverity, InsightType
 from app.models.dataset import Dataset, DatasetVersion
 from app.models.user import User
-from app.services.ai import explainer, llm_provider, nl2sql, rule_engine, sql_validator
+from app.services.ai import (
+    anomalies,
+    explainer,
+    forecast,
+    insights as insight_service,
+    llm_provider,
+    nl2sql,
+    rule_engine,
+    sql_validator,
+)
+from app.services.analytics import engine as aengine
 from app.services.ai.intent import detect_intent
 from app.services.ai.schema_context import build_schema_context
 from app.services.audit import audit
@@ -66,6 +76,13 @@ def answer_question(
     ctx = build_schema_context(engine, dataset, version)
     intent = detect_intent(question, ctx)
     provider = llm_provider.get_provider()
+
+    # Analytical intents bypass SQL generation — they're computed by
+    # dedicated statistical services over the same validated aggregates.
+    if intent.kind == "anomaly" and intent.date_col and intent.metric_col:
+        return _answer_anomaly(db, engine, question, intent, dataset, version, user, ip)
+    if intent.kind == "forecast" and intent.date_col and intent.metric_col:
+        return _answer_forecast(db, engine, question, intent, dataset, version, user, ip)
 
     gen = None
     engine_used = "rules"
@@ -185,4 +202,109 @@ def answer_question(
         "explanation": exp["detail"],
         "engine": engine_used,
         "intent": intent.kind,
+    }
+
+
+def _answer_anomaly(db, engine, question, intent, dataset, version, user, ip):
+    try:
+        res = anomalies.detect(
+            engine, version, date_column=intent.date_col,
+            metric_column=intent.metric_col, bucket=intent.bucket,
+        )
+    except AppError as e:
+        return {"content": e.message, "sql": None, "result": None,
+                "chart": None, "explanation": None, "engine": "stats"}
+
+    rows = res["anomalies"]
+    if not rows:
+        summary = f"No anomalies detected in {intent.metric_col}."
+        detail = f"All {res['points']} points fall within normal range ({res['method']})."
+    else:
+        top = rows[0]
+        summary = (
+            f"Found {len(rows)} anomal{'ies' if len(rows) != 1 else 'y'} — biggest is a "
+            f"{top['direction']} on {top['t']}: {top['value']:,.0f} "
+            f"(expected ~{top['expected']:,.0f})."
+        )
+        detail = (
+            f"{res['method']} analysis over {res['points']} {intent.bucket}ly points. "
+            "Anomalies are deviations from the moving-average trend, not raw values."
+        )
+
+    result = {
+        "columns": ["t", "value", "expected", "score", "direction", "severity"],
+        "rows": rows[:SNAPSHOT_ROWS],
+        "rowCount": len(rows),
+        "series": res["series"],
+    }
+    if rows:
+        db.add(Insight(
+            dataset_id=dataset.id, type=InsightType.ANOMALY,
+            title=f"{rows[0]['direction'].title()} in {intent.metric_col} on {rows[0]['t']}",
+            body=f"{summary} {detail}", severity=InsightSeverity(rows[0]['severity']),
+            evidence=rows[0], generated_by="system",
+        ))
+    audit(db, user_id=user.id, action="copilot.anomaly",
+          resource_type="dataset", resource_id=str(dataset.id),
+          meta={"found": len(rows)}, ip=ip)
+    db.commit()
+    return {
+        "content": summary,
+        "sql": None,
+        "result": result,
+        "chart": {"type": "anomaly", "x": "t", "y": "value"} if res["series"] else None,
+        "explanation": detail,
+        "engine": "stats",
+        "intent": "anomaly",
+    }
+
+
+def _answer_forecast(db, engine, question, intent, dataset, version, user, ip):
+    points = aengine.series(
+        engine, version, date_column=intent.date_col,
+        metric_column=intent.metric_col, agg="sum",
+        bucket=intent.bucket, frm=None, to=None,
+    )
+    try:
+        result = forecast.forecast(points, horizon=intent.horizon, bucket=intent.bucket)
+    except ValueError as e:
+        return {"content": str(e), "sql": None, "result": None,
+                "chart": None, "explanation": None, "engine": "stats"}
+
+    fp = result["points"]
+    summary = (
+        f"Next {intent.horizon} {intent.bucket}(s) projected {intent.metric_col}: "
+        f"{fp[-1]['forecast']:,.0f} by {fp[-1]['t']} (method: {result['method']})."
+    )
+    detail = (
+        f"Projected values range {fp[0]['forecast']:,.0f} → {fp[-1]['forecast']:,.0f} "
+        f"with ~80% confidence intervals widening over the horizon. "
+        "Forecasts are statistical projections, not guarantees."
+    )
+
+    result_snapshot = {
+        "columns": ["t", "forecast", "lower", "upper"],
+        "rows": fp,
+        "rowCount": len(fp),
+        "series": points[-40:],
+    }
+    db.add(Insight(
+        dataset_id=dataset.id, type=InsightType.FORECAST,
+        title=f"{intent.horizon}-{intent.bucket} {intent.metric_col} forecast",
+        body=f"{summary} {detail}", severity=InsightSeverity.INFO,
+        evidence={"forecast": fp, "method": result["method"]},
+        generated_by="system",
+    ))
+    audit(db, user_id=user.id, action="copilot.forecast",
+          resource_type="dataset", resource_id=str(dataset.id),
+          meta={"horizon": intent.horizon, "method": result["method"]}, ip=ip)
+    db.commit()
+    return {
+        "content": summary,
+        "sql": None,
+        "result": result_snapshot,
+        "chart": {"type": "forecast", "x": "t", "y": "forecast"},
+        "explanation": detail,
+        "engine": "stats",
+        "intent": "forecast",
     }

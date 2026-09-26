@@ -49,6 +49,7 @@ class Intent:
     filters: list[dict] = field(default_factory=list)
     compare_values: list[str] = field(default_factory=list)
     period_days: int | None = None
+    horizon: int = 6
     rationale: str = ""
 
 
@@ -136,6 +137,39 @@ def detect_intent(question: str, ctx: dict) -> Intent:
 
     intent.filters = _detect_dim_filter(q, ctx)
     intent.compare_values = [f["value"] for f in intent.filters]
+
+    anomaly_signals = ["anomal", "outlier", "unusual", "spike", "abnormal",
+                       "irregular", "weird", "unexpected"]
+    forecast_signals = ["forecast", "predict", "projection", "project",
+                        "next month", "next quarter", "future", "expect"]
+
+    if any(s in q for s in anomaly_signals):
+        intent.kind = "anomaly"
+        intent.agg = "sum"
+        intent.bucket = "day"
+        if not intent.metric_col and numeric_cols:
+            intent.metric_col = sorted(numeric_cols)[0]
+        intent.rationale = "anomaly detection on the daily series"
+        return intent
+
+    if any(s in q for s in forecast_signals):
+        intent.kind = "forecast"
+        intent.agg = "sum"
+        hm = re.search(
+            r"next\s+(\d+)?\s*(day|days|week|weeks|month|months|quarter|quarters|year|years)", q
+        )
+        if hm:
+            intent.horizon = int(hm.group(1) or 1)
+            unit = hm.group(2)[0]
+            intent.bucket = {"d": "day", "w": "week", "m": "month",
+                             "q": "quarter", "y": "year"}[unit]
+        else:
+            intent.horizon = 6
+            intent.bucket = "month"
+        if not intent.metric_col and numeric_cols:
+            intent.metric_col = sorted(numeric_cols)[0]
+        intent.rationale = f"{intent.horizon}-period {intent.bucket}ly forecast"
+        return intent
 
     trend_signals = ["trend", "over time", "monthly", "weekly", "daily",
                      "yearly", "per month", "by month", "by week", "by day", "evolution"]

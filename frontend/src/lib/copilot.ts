@@ -15,6 +15,7 @@ export type ChatMessage = {
     columns: string[];
     rows: Record<string, unknown>[];
     rowCount: number;
+    series?: { t: string; value: number }[];
   } | null;
   chartSpec: { type: string; x?: string; y?: string } | null;
   explanation: string | null;

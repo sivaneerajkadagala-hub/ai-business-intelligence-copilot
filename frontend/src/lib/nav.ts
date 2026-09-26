@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   LayoutGrid,
+  Lightbulb,
   ScrollText,
   Settings,
   Users,
@@ -41,6 +42,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "BI Copilot", href: "/copilot", icon: Bot },
       { title: "Analytics", href: "/analytics", icon: ChartLine },
+      { title: "Insights", href: "/insights", icon: Lightbulb },
     ],
   },
   {

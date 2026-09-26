@@ -9,6 +9,9 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Line,
+  LineChart,
+  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -36,7 +39,7 @@ function fmtAxis(v: number): string {
   return String(v);
 }
 
-function AnswerChart({ msg }: { msg: ChatMessage }) {
+export function AnswerChart({ msg }: { msg: ChatMessage }) {
   const spec = msg.chartSpec;
   const snap = msg.resultSnapshot;
   if (!spec || !snap?.rows.length || spec.type === "number") return null;
@@ -57,6 +60,60 @@ function AnswerChart({ msg }: { msg: ChatMessage }) {
           <Tooltip formatter={(v) => [fmtMetric(Number(v)), "value"]} />
           <Area type="monotone" dataKey="value" stroke={COLORS[0]} fill={COLORS[0]} fillOpacity={0.15} strokeWidth={2} />
         </AreaChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  if (spec.type === "anomaly" && snap.series) {
+    const series = snap.series as { t: string; value: number }[];
+    const anomalyTs = new Set(snap.rows.map((r) => String(r.t)));
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={series}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="t" tick={AXIS} tickLine={false} axisLine={false} />
+          <YAxis tick={AXIS} tickLine={false} axisLine={false} tickFormatter={fmtAxis} />
+          <Tooltip formatter={(v) => [fmtMetric(Number(v)), "value"]} />
+          <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={1.5} dot={false} />
+          {series.map((p, i) =>
+            anomalyTs.has(p.t) ? (
+              <ReferenceDot
+                key={i}
+                x={p.t}
+                y={p.value}
+                r={4}
+                fill="#ef4444"
+                stroke="#fff"
+              />
+            ) : null,
+          )}
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  if (spec.type === "forecast" && snap.series) {
+    const history = snap.series as { t: string; value: number }[];
+    const fc = snap.rows as { t: string; forecast: number; lower: number; upper: number }[];
+    const merged = [
+      ...history.map((h) => ({ t: h.t, value: h.value })),
+      ...fc.map((f) => ({
+        t: f.t,
+        forecast: f.forecast,
+        band: [f.lower, f.upper] as [number, number],
+      })),
+    ];
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={merged}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="t" tick={AXIS} tickLine={false} axisLine={false} />
+          <YAxis tick={AXIS} tickLine={false} axisLine={false} tickFormatter={fmtAxis} />
+          <Tooltip formatter={(v) => [fmtMetric(Number(v)), "value"]} />
+          <Area type="monotone" dataKey="band" stroke="none" fill={COLORS[0]} fillOpacity={0.12} connectNulls={false} />
+          <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={2} dot={false} name="actual" connectNulls={false} />
+          <Line type="monotone" dataKey="forecast" stroke={COLORS[1]} strokeWidth={2} strokeDasharray="6 4" dot={false} name="forecast" connectNulls={false} />
+        </LineChart>
       </ResponsiveContainer>
     );
   }

@@ -1,4 +1,11 @@
-from app.models.analytics import Dashboard, KPI, QueryHistory, QuerySource, QueryStatus
+from app.models.analytics import (
+    Dashboard,
+    Forecast,
+    KPI,
+    QueryHistory,
+    QuerySource,
+    QueryStatus,
+)
 from app.models.audit import AuditLog
 from app.models.copilot import (
     AIConversation,
@@ -32,6 +39,7 @@ __all__ = [
     "DatasetStatus",
     "DatasetVersion",
     "FileType",
+    "Forecast",
     "ImportStatus",
     "Insight",
     "InsightSeverity",

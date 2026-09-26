@@ -64,6 +64,26 @@ class Dashboard(Base):
     )
 
 
+class Forecast(Base):
+    __tablename__ = "forecasts"
+
+    id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("datasets.id", ondelete="CASCADE"), index=True
+    )
+    date_column: Mapped[str] = mapped_column(sa.String(200))
+    metric_column: Mapped[str] = mapped_column(sa.String(200))
+    method: Mapped[str] = mapped_column(sa.String(50))
+    horizon: Mapped[int] = mapped_column(sa.Integer)
+    result: Mapped[dict] = mapped_column(jsonb)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        sa.ForeignKey("users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+
+
 class QueryHistory(Base):
     __tablename__ = "query_history"
 
