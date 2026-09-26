@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Data / uploads
+uploads/
+*.csv
+*.xlsx
+!seed/**/*.csv
+
+# Docker / infra
+pgdata/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
