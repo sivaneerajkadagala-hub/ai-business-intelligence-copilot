@@ -199,7 +199,9 @@ export default function InsightsPage() {
         <div className="flex items-center gap-2">
           <Select value={dataset?.id ?? null} onValueChange={(v) => setDatasetId(v as string)}>
             <SelectTrigger size="sm" className="w-48">
-              <SelectValue />
+              <SelectValue>
+                {(v) => readyDatasets.find((d) => d.id === v)?.name ?? "Dataset"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {readyDatasets.map((d) => (

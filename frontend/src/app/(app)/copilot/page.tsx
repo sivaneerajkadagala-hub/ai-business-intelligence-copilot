@@ -206,11 +206,21 @@ export default function CopilotPage() {
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
 
-  const firstMetric = profile?.columns.find((c) =>
-    ["integer", "float"].includes(c.inferredType),
+  // Prefer business-metric columns for suggestions; skip surrogate keys.
+  const METRIC_HINTS = ["revenue", "amount", "profit", "sales", "price", "cost", "qty", "quantity", "total", "value"];
+  const metricCols =
+    profile?.columns.filter(
+      (c) =>
+        ["integer", "float"].includes(c.inferredType) &&
+        !/(^|_)id$/i.test(c.normalizedName),
+    ) ?? [];
+  const firstMetric = (
+    metricCols.find((c) =>
+      METRIC_HINTS.some((h) => c.normalizedName.toLowerCase().includes(h)),
+    ) ?? metricCols[0]
   )?.normalizedName;
   const firstDim = profile?.columns.find(
-    (c) => c.inferredType === "string",
+    (c) => c.inferredType === "string" && !/(^|_)id$/i.test(c.normalizedName),
   )?.normalizedName;
   const suggestions = dataset
     ? [
@@ -295,7 +305,9 @@ export default function CopilotPage() {
               onValueChange={(v) => setDatasetId(v as string)}
             >
               <SelectTrigger size="sm" className="w-44">
-                <SelectValue placeholder="Dataset" />
+                <SelectValue>
+                  {(v) => readyDatasets.find((d) => d.id === v)?.name ?? "Dataset"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {readyDatasets.map((d) => (
@@ -436,7 +448,9 @@ export default function CopilotPage() {
           <div className="flex flex-col gap-3">
             <Select value={pinDashboard ?? ""} onValueChange={(v) => setPinDashboard(v as string)}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a dashboard" />
+                <SelectValue>
+                  {(v) => editableDashboards.find((d) => d.id === v)?.name ?? "Choose a dashboard"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {editableDashboards.map((d) => (

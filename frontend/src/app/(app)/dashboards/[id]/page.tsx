@@ -216,7 +216,11 @@ export default function DashboardBuilderPage() {
                       <div className="flex flex-col gap-1.5">
                         <Label>Dataset</Label>
                         <Select value={selDataset?.id ?? null} onValueChange={(v) => setWDataset(v as string)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue>
+                              {(v) => readyDatasets.find((d) => d.id === v)?.name ?? "Dataset"}
+                            </SelectValue>
+                          </SelectTrigger>
                           <SelectContent>
                             {readyDatasets.map((d) => (
                               <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
@@ -233,7 +237,11 @@ export default function DashboardBuilderPage() {
                       <div className="flex flex-col gap-1.5">
                         <Label>KPI</Label>
                         <Select value={wKpi ?? kpis?.[0]?.id ?? null} onValueChange={(v) => setWKpi(v as string)}>
-                          <SelectTrigger><SelectValue placeholder="Select KPI" /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue>
+                              {(v) => kpis?.find((k) => k.id === v)?.name ?? "Select KPI"}
+                            </SelectValue>
+                          </SelectTrigger>
                           <SelectContent>
                             {(kpis ?? []).map((k) => (
                               <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>

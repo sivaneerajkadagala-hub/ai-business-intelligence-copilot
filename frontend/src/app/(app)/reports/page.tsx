@@ -129,7 +129,11 @@ export default function ReportsPage() {
                   <div className="flex flex-col gap-1.5">
                     <Label>Dataset</Label>
                     <Select value={selDataset?.id ?? null} onValueChange={(v) => setDatasetId(v as string)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue>
+                          {(v) => readyDatasets.find((d) => d.id === v)?.name ?? "Dataset"}
+                        </SelectValue>
+                      </SelectTrigger>
                       <SelectContent>
                         {readyDatasets.map((d) => (
                           <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>

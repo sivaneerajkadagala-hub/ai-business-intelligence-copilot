@@ -252,7 +252,9 @@ export default function DashboardPage() {
           }}
         >
           <SelectTrigger size="sm" className="w-52">
-            <SelectValue placeholder="Select dataset" />
+            <SelectValue>
+              {(v) => readyDatasets.find((d) => d.id === v)?.name ?? "Select dataset"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {readyDatasets.map((d) => (

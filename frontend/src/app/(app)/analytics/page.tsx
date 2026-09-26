@@ -214,7 +214,9 @@ export default function AnalyticsPage() {
                     onValueChange={(v) => setForm({ ...form, datasetId: v as string, column: "", dateColumn: "" })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose dataset" />
+                      <SelectValue>
+                        {(v) => readyDatasets.find((d) => d.id === v)?.name ?? "Choose dataset"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {readyDatasets.map((d) => (
@@ -374,7 +376,9 @@ export default function AnalyticsPage() {
             }}
           >
             <SelectTrigger size="sm" className="w-48">
-              <SelectValue />
+              <SelectValue>
+                {(v) => readyDatasets.find((d) => d.id === v)?.name ?? "Dataset"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {readyDatasets.map((d) => (
