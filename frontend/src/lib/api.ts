@@ -87,3 +87,37 @@ export async function apiFetch<T>(
     throw err;
   }
 }
+
+async function doDownload(path: string, token?: string | null): Promise<Blob> {
+  const res = await fetch(`${API_URL}/api/v1${path}`, {
+    credentials: "include",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw { message: body?.message ?? `Download failed (${res.status})`, errorCode: null } satisfies ApiError;
+  }
+  return res.blob();
+}
+
+export async function apiDownload(path: string, token?: string | null): Promise<Blob> {
+  try {
+    return await doDownload(path, token);
+  } catch (err) {
+    const apiErr = err as ApiError;
+    if (apiErr.errorCode === "UNAUTHORIZED" || (err as { message?: string })?.message?.includes("401")) {
+      const fresh = await refreshSession();
+      if (fresh) return doDownload(path, fresh);
+    }
+    throw err;
+  }
+}
+
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

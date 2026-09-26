@@ -27,12 +27,21 @@ from app.models.dataset import (
 )
 from app.models.token import PasswordResetToken, RefreshToken
 from app.models.user import User, UserRole
+from app.models.workspace import (
+    DashboardWidget,
+    Report,
+    ReportFormat,
+    ReportStatus,
+    SavedQuery,
+    WidgetType,
+)
 
 __all__ = [
     "AIConversation",
     "AIMessage",
     "AuditLog",
     "Dashboard",
+    "DashboardWidget",
     "Dataset",
     "DatasetColumn",
     "DatasetImport",
@@ -50,6 +59,11 @@ __all__ = [
     "QueryHistory",
     "QuerySource",
     "QueryStatus",
+    "Report",
+    "ReportFormat",
+    "ReportStatus",
+    "SavedQuery",
+    "WidgetType",
     "RefreshToken",
     "User",
     "UserRole",

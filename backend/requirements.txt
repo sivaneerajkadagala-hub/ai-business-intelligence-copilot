@@ -13,3 +13,4 @@ pandas~=2.2.0
 openpyxl~=3.1.0
 httpx~=0.28.0
 sqlglot~=26.0
+fpdf2~=2.8.0

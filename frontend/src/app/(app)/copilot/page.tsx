@@ -28,6 +28,12 @@ import {
 import { AssistantMessage } from "@/components/copilot/answer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -42,11 +48,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 type Profile = { columns: DatasetColumn[] };
 
 export default function CopilotPage() {
-  const { api } = useAuth();
+  const { api, user } = useAuth();
   const queryClient = useQueryClient();
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [datasetId, setDatasetId] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
+  const [saveTarget, setSaveTarget] = useState<ChatMessage | null>(null);
+  const [saveName, setSaveName] = useState("");
   // Optimistic messages for the current thread until the server copy
   // catches up (deduped against fetched messages by id / role+content).
   const [pending, setPending] = useState<ChatMessage[]>([]);
@@ -144,6 +152,26 @@ export default function CopilotPage() {
         setActiveConv(null);
         setPending([]);
       }
+    },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+
+  const saveQueryMutation = useMutation({
+    mutationFn: () =>
+      api("/queries", {
+        method: "POST",
+        body: JSON.stringify({
+          name: saveName.trim() || "Copilot query",
+          sql: saveTarget?.sql,
+          question: saveTarget?.content?.slice(0, 200) ?? null,
+          datasetId: dataset?.id,
+          isShared: true,
+        }),
+      }),
+    onSuccess: () => {
+      toast.success("Query saved to library");
+      setSaveTarget(null);
+      setSaveName("");
     },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -290,7 +318,18 @@ export default function CopilotPage() {
                     {m.content}
                   </div>
                 ) : (
-                  <AssistantMessage key={m.id} msg={m} />
+                  <AssistantMessage
+                    key={m.id}
+                    msg={m}
+                    onSaveQuery={
+                      user?.role === "viewer"
+                        ? undefined
+                        : (msg) => {
+                            setSaveTarget(msg);
+                            setSaveName(msg.content.slice(0, 60));
+                          }
+                    }
+                  />
                 ),
               )}
               {sendMutation.isPending && (
@@ -326,6 +365,30 @@ export default function CopilotPage() {
           </Button>
         </form>
       </div>
+
+      <Dialog open={!!saveTarget} onOpenChange={(o) => !o && setSaveTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save query</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <Input
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="Query name"
+            />
+            <pre className="max-h-40 overflow-x-auto rounded-md bg-muted p-3 text-xs">
+              {saveTarget?.sql}
+            </pre>
+            <Button
+              onClick={() => saveQueryMutation.mutate()}
+              disabled={saveQueryMutation.isPending}
+            >
+              Save to library
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -4,7 +4,7 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -61,6 +61,12 @@ class Dashboard(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()
+    )
+
+    widgets: Mapped[list["DashboardWidget"]] = relationship(
+        back_populates="dashboard",
+        cascade="all, delete-orphan",
+        order_by="DashboardWidget.sort_order",
     )
 
 

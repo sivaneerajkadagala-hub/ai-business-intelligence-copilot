@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Code2 } from "lucide-react";
+import { BookmarkPlus, ChevronDown, Code2 } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -135,7 +135,13 @@ export function AnswerChart({ msg }: { msg: ChatMessage }) {
   );
 }
 
-export function AssistantMessage({ msg }: { msg: ChatMessage }) {
+export function AssistantMessage({
+  msg,
+  onSaveQuery,
+}: {
+  msg: ChatMessage;
+  onSaveQuery?: (msg: ChatMessage) => void;
+}) {
   const [showSql, setShowSql] = useState(false);
   const snap = msg.resultSnapshot;
   const isNumber = msg.chartSpec?.type === "number" && snap?.rows.length === 1;
@@ -193,18 +199,30 @@ export function AssistantMessage({ msg }: { msg: ChatMessage }) {
 
       {msg.sql && (
         <div className="mt-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 text-xs text-muted-foreground"
-            onClick={() => setShowSql(!showSql)}
-          >
-            <Code2 className="mr-1.5 size-3.5" />
-            {showSql ? "Hide" : "Show"} generated SQL
-            <ChevronDown
-              className={`ml-1 size-3.5 transition-transform ${showSql ? "rotate-180" : ""}`}
-            />
-          </Button>
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2 text-xs text-muted-foreground"
+              onClick={() => setShowSql(!showSql)}
+            >
+              <Code2 className="mr-1.5 size-3.5" />
+              {showSql ? "Hide" : "Show"} generated SQL
+              <ChevronDown
+                className={`ml-1 size-3.5 transition-transform ${showSql ? "rotate-180" : ""}`}
+              />
+            </Button>
+            {onSaveQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto text-xs text-muted-foreground"
+                onClick={() => onSaveQuery(msg)}
+              >
+                <BookmarkPlus className="mr-1.5 size-3.5" /> Save query
+              </Button>
+            )}
+          </div>
           {showSql && (
             <pre className="mt-1 overflow-x-auto rounded-md bg-muted p-3 text-xs">
               {msg.sql}

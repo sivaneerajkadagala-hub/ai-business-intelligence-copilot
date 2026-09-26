@@ -6,13 +6,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Brush,
+  Download,
   GitBranch,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth";
-import { apiErrorMessage } from "@/lib/api";
+import { apiErrorMessage, saveBlob } from "@/lib/api";
 import {
   formatBytes,
   formatNumber,
@@ -65,7 +66,7 @@ const TYPE_COLORS: Record<string, "default" | "secondary" | "outline"> = {
 export default function DatasetDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { api, user } = useAuth();
+  const { api, user, download } = useAuth();
   const queryClient = useQueryClient();
   const [previewPage, setPreviewPage] = useState(1);
   const [versionId, setVersionId] = useState<string | null>(null);
@@ -96,6 +97,16 @@ export default function DatasetDetailPage() {
 
   const canWrite = user?.role === "admin" || user?.role === "analyst";
   const isOwner = ds?.ownerId === user?.id;
+
+  async function onExport() {
+    try {
+      const blob = await download(`/datasets/${id}/export.csv`);
+      saveBlob(blob, `${ds?.name.replace(/\s+/g, "_")}.csv`);
+      toast.success("CSV downloaded");
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    }
+  }
 
   async function onDelete() {
     try {
@@ -144,6 +155,12 @@ export default function DatasetDetailPage() {
             <Button variant="outline" onClick={() => setCleanOpen(true)}>
               <Brush className="mr-2 size-4" />
               Clean data
+            </Button>
+          )}
+          {canWrite && (
+            <Button variant="outline" onClick={onExport}>
+              <Download className="mr-2 size-4" />
+              Export CSV
             </Button>
           )}
           {(isOwner || user?.role === "admin") && (

@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import {
+  apiDownload,
   apiFetch,
   setSessionRefresher,
   type ApiOptions,
@@ -26,6 +27,7 @@ type AuthContextValue = {
   logout: () => Promise<void>;
   setUser: (u: User) => void;
   api: <T>(path: string, init?: ApiOptions) => Promise<T>;
+  download: (path: string) => Promise<Blob>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -96,9 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [token],
   );
 
+  const download = useCallback(
+    (path: string) => apiDownload(path, token),
+    [token],
+  );
+
   const value = useMemo(
-    () => ({ user, token, loading, login, register, logout, setUser, api }),
-    [user, token, loading, login, register, logout, api],
+    () => ({ user, token, loading, login, register, logout, setUser, api, download }),
+    [user, token, loading, login, register, logout, api, download],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
