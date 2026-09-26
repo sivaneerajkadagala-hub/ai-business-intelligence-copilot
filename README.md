@@ -103,11 +103,19 @@ Point `DATABASE_URL` at Postgres (see `.env.example`) and run
 ## Testing
 
 ```bash
-cd backend && pytest          # 79 unit/integration tests — auth, datasets,
+cd backend && pytest          # 84 unit/integration tests — auth, datasets,
                               # analytics, copilot, insights, workspace, audit
 cd frontend && npm run lint && npm run build
 python tests/e2e/smoke.py     # end-to-end smoke (needs backend on :8000)
 ```
+
+## CI/CD
+
+`.github/workflows/ci.yml` runs on every push/PR: **backend** (Python 3.12,
+`pytest` against SQLite) and **frontend** (Node 20, `eslint` +
+`next build`). Docker images build via `docker compose` — the backend
+container runs `alembic upgrade head && python -m seed.run` on startup, so a
+fresh stack is self-provisioning.
 
 ## Environment variables
 
@@ -133,4 +141,4 @@ See [.env.example](.env.example). Highlights:
 | 7 | Dashboard builder, saved queries, PDF/CSV reports | Done |
 | 8 | Audit viewer, multi-turn copilot, pin-to-dashboard, docs | Done |
 | 9 | Async ingestion, notifications, DB source connectors | Done |
-| 10 | CI/CD hardening, deployment, final polish | Planned |
+| 10 | CI workflow, deployment polish | Done |

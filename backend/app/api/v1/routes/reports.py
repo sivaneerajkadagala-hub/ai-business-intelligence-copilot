@@ -25,7 +25,8 @@ from app.services.reports import export
 settings = get_settings()
 router = APIRouter(tags=["reports"])
 
-REPORTS_DIR = Path(settings.UPLOAD_DIR).parent / "reports" / "generated"
+# Reports persist under UPLOAD_DIR so Docker's uploads volume covers them.
+REPORTS_DIR = Path(settings.UPLOAD_DIR) / "reports"
 
 
 def _client_ip(request: Request) -> str | None:
