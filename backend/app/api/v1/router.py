@@ -9,6 +9,7 @@ from app.api.v1.routes import (
     datasets,
     health,
     insights,
+    notifications,
     queries,
     reports,
     users,
@@ -26,3 +27,4 @@ api_router.include_router(dashboards.router)
 api_router.include_router(queries.router)
 api_router.include_router(reports.router)
 api_router.include_router(audit.router)
+api_router.include_router(notifications.router)

@@ -109,16 +109,17 @@ def write_version(
     return version
 
 
-def ingest_upload(
+def create_import_stub(
     db: Session,
-    engine: Engine,
     user: User,
     *,
     filename: str,
     content: bytes,
     display_name: str | None,
-    ip: str | None,
 ) -> Dataset:
+    """Fast part of upload: validate, store the file, create dataset +
+    pending import record. The heavy processing happens in
+    `process_import` — synchronously or via the job pool."""
     ext = Path(filename).suffix.lower()
     file_type = ALLOWED_EXTENSIONS.get(ext)
     if file_type is None:
@@ -144,25 +145,46 @@ def ingest_upload(
 
     upload_dir = Path(settings.UPLOAD_DIR) / str(dataset.id)
     upload_dir.mkdir(parents=True, exist_ok=True)
-    safe_name = f"source{ext}"
-    file_path = upload_dir / safe_name
+    file_path = upload_dir / f"source{ext}"
     file_path.write_bytes(content)
     dataset.storage_path = str(file_path)
 
-    import_record = DatasetImport(
-        dataset_id=dataset.id,
-        imported_by=user.id,
-        status=ImportStatus.RUNNING,
-        started_at=utcnow(),
+    db.add(
+        DatasetImport(
+            dataset_id=dataset.id, imported_by=user.id,
+            status=ImportStatus.PENDING, started_at=utcnow(),
+        )
     )
-    db.add(import_record)
     db.commit()
+    db.refresh(dataset)
+    return dataset
+
+
+def process_import(
+    db: Session,
+    engine: Engine,
+    *,
+    dataset: Dataset,
+    import_record: DatasetImport,
+    user: User,
+    ip: str | None,
+    df: pd.DataFrame | None = None,
+) -> Dataset:
+    """Read/normalize → infer → coerce → physical table → profile →
+    ready. `df` may be supplied directly (source imports). Emits a
+    notification on success/failure."""
+    from app.services.notifications import notify
 
     try:
+        import_record.status = ImportStatus.RUNNING
+        import_record.started_at = utcnow()
         dataset.status = DatasetStatus.PROFILING
-        df = _read_file(file_path, file_type)
+        db.commit()
+
+        if df is None:
+            df = _read_file(Path(dataset.storage_path), dataset.file_type)
         if df.empty or len(df.columns) == 0:
-            raise ValueError("No readable rows found in file")
+            raise ValueError("No readable rows found")
 
         normalized = profiling.normalize_column_names(list(df.columns))
         df.columns = normalized
@@ -189,22 +211,57 @@ def ingest_upload(
         audit(
             db, user_id=user.id, action="datasets.upload",
             resource_type="dataset", resource_id=str(dataset.id),
-            meta={"rows": len(df), "columns": len(df.columns), "file": filename},
+            meta={"rows": len(df), "columns": len(df.columns),
+                  "file": dataset.original_filename},
             ip=ip,
+        )
+        notify(
+            db, user_id=user.id, type="ingest.success",
+            title=f'"{dataset.name}" is ready',
+            body=f"{len(df):,} rows · {len(df.columns)} columns · "
+                 f"quality {dataset.quality_score:.0f}/100",
+            link=f"/datasets/{dataset.id}",
         )
         db.commit()
         db.refresh(dataset)
         return dataset
 
-    except AppError:
-        raise
     except Exception as exc:
         dataset.status = DatasetStatus.FAILED
         import_record.status = ImportStatus.FAILED
         import_record.error_log = [{"error": str(exc)[:500]}]
         import_record.finished_at = utcnow()
+        notify(
+            db, user_id=user.id, type="ingest.failed",
+            title=f'"{dataset.name}" import failed',
+            body=str(exc)[:300], link=f"/datasets/{dataset.id}",
+        )
         db.commit()
         raise AppError("Could not process the uploaded file", "INGEST_FAILED", 422) from exc
+
+
+def ingest_upload(
+    db: Session,
+    engine: Engine,
+    user: User,
+    *,
+    filename: str,
+    content: bytes,
+    display_name: str | None,
+    ip: str | None,
+) -> Dataset:
+    dataset = create_import_stub(
+        db, user, filename=filename, content=content, display_name=display_name
+    )
+    import_record = db.scalars(
+        sa.select(DatasetImport)
+        .where(DatasetImport.dataset_id == dataset.id)
+        .order_by(DatasetImport.started_at.desc())
+        .limit(1)
+    ).first()
+    return process_import(
+        db, engine, dataset=dataset, import_record=import_record, user=user, ip=ip
+    )
 
 
 def delete_dataset(

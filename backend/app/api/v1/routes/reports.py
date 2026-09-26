@@ -19,6 +19,7 @@ from app.schemas.common import ok
 from app.schemas.workspace import ReportIn, ReportOut
 from app.services.analytics import engine as aengine
 from app.services.audit import audit
+from app.services.notifications import notify
 from app.services.reports import export
 
 settings = get_settings()
@@ -132,6 +133,13 @@ def generate_report(
         report.status = ReportStatus.FAILED
         db.commit()
         raise
+
+    notify(
+        db, user_id=user.id, type="report.ready",
+        title=f'Report "{report.name}" is ready',
+        body=f"{report.format.value.upper()} export of {ds.name}",
+        link="/reports",
+    )
 
     audit(db, user_id=user.id, action="reports.generate",
           resource_type="report", resource_id=str(report.id),

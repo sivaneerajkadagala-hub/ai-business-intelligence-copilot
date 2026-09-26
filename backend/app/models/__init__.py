@@ -25,6 +25,7 @@ from app.models.dataset import (
     ImportStatus,
     VersionKind,
 )
+from app.models.notification import Notification
 from app.models.token import PasswordResetToken, RefreshToken
 from app.models.user import User, UserRole
 from app.models.workspace import (
@@ -55,6 +56,7 @@ __all__ = [
     "InsightType",
     "KPI",
     "MessageRole",
+    "Notification",
     "PasswordResetToken",
     "QueryHistory",
     "QuerySource",

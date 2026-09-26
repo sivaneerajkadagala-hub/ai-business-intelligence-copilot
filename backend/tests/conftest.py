@@ -12,6 +12,9 @@ from app.core.security import hash_password
 from app.main import app
 from app.models.user import User, UserRole
 
+# Recreate the schema so model changes (new tables/columns) are always
+# reflected — tests truncate all rows before each case anyway.
+Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 

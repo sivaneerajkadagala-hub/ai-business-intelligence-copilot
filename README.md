@@ -7,9 +7,11 @@ get AI-generated insights, anomaly detection, and Holt-Winters forecasts.
 
 ## What it does
 
-- **Dataset pipeline** — CSV/XLSX upload → type inference → physical typed
-  tables → per-column profiling (nulls, distinct, distribution, outliers) →
-  quality scores → cleaning ops as **new versions** (originals never mutated).
+- **Dataset pipeline** — CSV/XLSX upload or PostgreSQL/SQLite source import →
+  type inference → physical typed tables → per-column profiling (nulls,
+  distinct, distribution, outliers) → quality scores → cleaning ops as **new
+  versions** (originals never mutated). Large uploads run **asynchronously** in
+  a background job pool with status transitions + notifications.
 - **Analytics** — aggregation engine (sum/avg/count/min/max × whitelisted
   filters × date bucketing), KPI definitions with period deltas + target
   progress, live Recharts dashboard.
@@ -22,7 +24,7 @@ get AI-generated insights, anomaly detection, and Holt-Winters forecasts.
   one-click insight generator (trend, top/laggard, anomalies, data quality).
 - **Workspace** — drag-and-drop dashboard builder, saved-query library
   (re-validated before every run), PDF reports + sanitized CSV export,
-  full audit trail.
+  in-app notifications, full audit trail.
 
 ## Architecture
 
@@ -130,5 +132,5 @@ See [.env.example](.env.example). Highlights:
 | 6 | Anomaly detection, forecasting, insight engine | Done |
 | 7 | Dashboard builder, saved queries, PDF/CSV reports | Done |
 | 8 | Audit viewer, multi-turn copilot, pin-to-dashboard, docs | Done |
-| 9 | Background jobs, notifications, data-source connectors | Planned |
+| 9 | Async ingestion, notifications, DB source connectors | Done |
 | 10 | CI/CD hardening, deployment, final polish | Planned |

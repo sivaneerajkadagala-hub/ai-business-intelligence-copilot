@@ -75,5 +75,6 @@ class ImportOut(CamelModel):
     rows_imported: int
     rows_rejected: int
     error_log: list | None
+    source: dict | None
     started_at: datetime | None
     finished_at: datetime | None

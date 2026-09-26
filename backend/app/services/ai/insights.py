@@ -147,6 +147,16 @@ def generate(
             evidence={"qualityScore": float(dataset.quality_score)},
         )
 
+    from app.services.notifications import notify
+
+    warning_count = sum(1 for i in created if i.severity != InsightSeverity.INFO)
+    if warning_count:
+        notify(
+            db, user_id=user.id, type="insights.warning",
+            title=f"{warning_count} finding{'s' if warning_count > 1 else ''} in {dataset.name}",
+            body="Anomalies or quality issues detected — open Insights to review.",
+            link="/insights",
+        )
     audit(
         db, user_id=user.id, action="insights.generate",
         resource_type="dataset", resource_id=str(dataset.id),

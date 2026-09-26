@@ -20,6 +20,7 @@ class DatasetStatus(str, enum.Enum):
 class FileType(str, enum.Enum):
     CSV = "csv"
     XLSX = "xlsx"
+    SOURCE = "source"
 
 
 class VersionKind(str, enum.Enum):
@@ -152,6 +153,8 @@ class DatasetImport(Base):
     rows_imported: Mapped[int] = mapped_column(sa.BigInteger, default=0)
     rows_rejected: Mapped[int] = mapped_column(sa.BigInteger, default=0)
     error_log: Mapped[list | None] = mapped_column(jsonb)
+    # Provenance for non-file imports: {"scheme": "postgresql", "host": "...", "table": "..."}
+    source: Mapped[dict | None] = mapped_column(jsonb)
     started_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

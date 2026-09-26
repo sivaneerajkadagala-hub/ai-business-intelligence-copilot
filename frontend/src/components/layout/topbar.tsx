@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarContent } from "@/components/layout/app-sidebar";
+import { NotificationBell } from "@/components/layout/notifications";
 
 function titleCase(segment: string) {
   return segment
@@ -93,6 +94,7 @@ export function Topbar() {
             aria-label="Global search"
           />
         </div>
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger
             render={

@@ -3,24 +3,29 @@ import uuid
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.database import engine, get_db
 from app.core.deps import get_current_user, require_analyst
 from app.core.errors import AppError
+from app.core.security import utcnow
 from app.models.dataset import (
     Dataset,
     DatasetColumn,
     DatasetImport,
     DatasetStatus,
     DatasetVersion,
+    FileType,
+    ImportStatus,
 )
 from app.models.user import User
 from app.schemas.common import ok
 from app.schemas.dataset import CleanIn, ColumnOut, DatasetOut, ImportOut, VersionOut
+from app.services import jobs
 from app.services.audit import audit
-from app.services.datasets import cleaning, ingest, tables
+from app.services.datasets import cleaning, connectors, ingest, tables
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -53,14 +58,80 @@ async def upload_dataset(
     request: Request,
     file: UploadFile = File(...),
     name: str | None = Form(None),
+    async_: bool = Query(False, alias="async"),
     db: Session = Depends(get_db),
     user: User = Depends(require_analyst),
 ) -> dict:
     content = await file.read()
+    filename = file.filename or "upload"
+    if async_:
+        dataset = ingest.create_import_stub(
+            db, user, filename=filename, content=content, display_name=name,
+        )
+        jobs.submit_import(dataset.id, user.id, _client_ip(request))
+        return ok(_dump(DatasetOut, dataset), message="Import queued")
     dataset = ingest.ingest_upload(
         db, engine, user,
-        filename=file.filename or "upload", content=content,
+        filename=filename, content=content,
         display_name=name, ip=_client_ip(request),
+    )
+    return ok(_dump(DatasetOut, dataset))
+
+
+class SourcePreviewIn(BaseModel):
+    url: str
+
+
+@router.post("/source/preview")
+def preview_source(
+    body: SourcePreviewIn,
+    _: User = Depends(require_analyst),
+) -> dict:
+    """Test a connection URL and list its tables (credentials not stored)."""
+    return ok(connectors.list_tables(body.url))
+
+
+class SourceImportIn(BaseModel):
+    url: str
+    name: str | None = None
+    table: str | None = None
+    query: str | None = None
+
+
+@router.post("/import-source", status_code=201)
+def import_from_source(
+    body: SourceImportIn,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_analyst),
+) -> dict:
+    if not body.table and not body.query:
+        raise AppError("Provide either a table name or a SELECT query", "BAD_REQUEST", 400)
+    df, prov = connectors.read_source(body.url, table=body.table, query=body.query)
+    if df.empty:
+        raise AppError("The source returned zero rows", "BAD_REQUEST", 400)
+
+    dataset = Dataset(
+        owner_id=user.id,
+        name=(body.name or prov["table"] or "Source import")[:200],
+        status=DatasetStatus.UPLOADED,
+        original_filename=f'{prov["scheme"]}://{prov["host"]}/{prov["table"]}',
+        file_type=FileType.SOURCE,
+        file_size_bytes=0,
+        storage_path="",
+    )
+    db.add(dataset)
+    db.flush()
+    import_record = DatasetImport(
+        dataset_id=dataset.id, imported_by=user.id,
+        status=ImportStatus.PENDING, source=prov, started_at=utcnow(),
+    )
+    db.add(import_record)
+    db.commit()
+
+    dataset = ingest.process_import(
+        db, engine, dataset=dataset, import_record=import_record,
+        user=user, ip=_client_ip(request), df=df,
     )
     return ok(_dump(DatasetOut, dataset))
 
