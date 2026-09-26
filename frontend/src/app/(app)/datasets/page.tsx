@@ -1,16 +1,234 @@
-import type { Metadata } from "next";
-import { Database } from "lucide-react";
+"use client";
 
-import { PagePlaceholder } from "@/components/page-placeholder";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Database, FileSpreadsheet, Upload } from "lucide-react";
+import { toast } from "sonner";
 
-export const metadata: Metadata = { title: "Datasets" };
+import { useAuth } from "@/lib/auth";
+import { apiErrorMessage } from "@/lib/api";
+import {
+  formatBytes,
+  formatNumber,
+  type Dataset,
+  type Page,
+} from "@/lib/datasets";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+function QualityBadge({ score }: { score: number | null }) {
+  if (score == null) return <span className="text-muted-foreground">—</span>;
+  const variant = score >= 80 ? "default" : score >= 50 ? "secondary" : "destructive";
+  return <Badge variant={variant}>{score.toFixed(0)}</Badge>;
+}
+
+function StatusBadge({ status }: { status: Dataset["status"] }) {
+  const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+    ready: "default",
+    failed: "destructive",
+  };
+  return <Badge variant={map[status] ?? "secondary"}>{status}</Badge>;
+}
 
 export default function DatasetsPage() {
+  const router = useRouter();
+  const { api, user } = useAuth();
+  const queryClient = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [name, setName] = useState("");
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["datasets"],
+    queryFn: () => api<Page<Dataset>>("/datasets"),
+  });
+
+  const canWrite = user?.role === "admin" || user?.role === "analyst";
+
+  const upload = useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      if (name.trim()) fd.append("name", name.trim());
+      return api<Dataset>("/datasets/upload", { method: "POST", body: fd });
+    },
+    onSuccess: (ds) => {
+      toast.success(`"${ds.name}" imported — ${ds.rowCount} rows`);
+      setDialogOpen(false);
+      setName("");
+      queryClient.invalidateQueries({ queryKey: ["datasets"] });
+      router.push(`/datasets/${ds.id}`);
+    },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+
   return (
-    <PagePlaceholder
-      title="Datasets"
-      description="Upload, profile, and manage your business data"
-      icon={Database}
-    />
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Datasets</h1>
+          <p className="text-sm text-muted-foreground">
+            Upload, profile, and manage your business data
+          </p>
+        </div>
+        {canWrite && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger render={<Button />}>
+              <Upload className="mr-2 size-4" />
+              Upload dataset
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload dataset</DialogTitle>
+                <DialogDescription>
+                  CSV or XLSX, up to 50 MB. We&apos;ll profile it automatically.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="ds-name">Display name (optional)</Label>
+                  <Input
+                    id="ds-name"
+                    placeholder="e.g. Q4 Sales"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="ds-file">File</Label>
+                  <Input
+                    id="ds-file"
+                    ref={fileRef}
+                    type="file"
+                    accept=".csv,.xlsx"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  disabled={upload.isPending}
+                  onClick={() => {
+                    const f = fileRef.current?.files?.[0];
+                    if (!f) {
+                      toast.error("Choose a file first");
+                      return;
+                    }
+                    upload.mutate(f);
+                  }}
+                >
+                  {upload.isPending ? "Importing..." : "Upload & profile"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Rows</TableHead>
+                <TableHead className="text-right">Cols</TableHead>
+                <TableHead className="text-right">Size</TableHead>
+                <TableHead>Quality</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Uploaded</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading &&
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 8 }).map((__, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              {!isLoading && data?.items.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8}>
+                    <div className="flex flex-col items-center gap-2 py-14 text-center">
+                      <Database className="size-8 text-muted-foreground/50" />
+                      <p className="text-sm text-muted-foreground">
+                        No datasets yet — upload a CSV or XLSX to get started.
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {data?.items.map((ds) => (
+                <TableRow
+                  key={ds.id}
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/datasets/${ds.id}`)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <FileSpreadsheet className="size-4 text-muted-foreground" />
+                      <span className="font-medium">{ds.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{ds.fileType}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNumber(ds.rowCount)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {ds.columnCount}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {formatBytes(ds.fileSizeBytes)}
+                  </TableCell>
+                  <TableCell>
+                    <QualityBadge score={ds.qualityScore} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={ds.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(ds.createdAt).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      {data && data.total > 0 && (
+        <p className="text-xs text-muted-foreground">{data.total} dataset(s)</p>
+      )}
+    </div>
   );
 }

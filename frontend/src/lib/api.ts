@@ -44,11 +44,12 @@ function refreshSession(): Promise<string | null> {
 
 async function doFetch<T>(path: string, options: ApiOptions): Promise<T> {
   const { token, headers, ...init } = options;
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     credentials: "include",
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
