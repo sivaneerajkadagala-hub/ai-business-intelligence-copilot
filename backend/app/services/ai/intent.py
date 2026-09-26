@@ -216,3 +216,38 @@ def detect_intent(question: str, ctx: dict) -> Intent:
             intent.kind = "unsupported"
 
     return intent
+
+
+FOLLOWUP_PREFIXES = ("and ", "also ", "what about ", "how about ", "now ", "then ", "and by ")
+
+
+def merge_followup(question: str, intent: Intent, prior: Intent | None) -> Intent:
+    """Multi-turn context: a terse follow-up ('and by category', 'now over
+    time') inherits entities from the previous turn's intent."""
+    if prior is None or prior.kind in ("unsupported", "anomaly", "forecast"):
+        return intent
+    q = question.lower().strip()
+    is_followup = (
+        any(q.startswith(p) for p in FOLLOWUP_PREFIXES)
+        or intent.kind == "unsupported"
+        or (intent.kind == "metric" and intent.metric_col is None and " by " in q)
+    )
+    if not is_followup:
+        return intent
+
+    intent.metric_col = intent.metric_col or prior.metric_col
+    intent.date_col = intent.date_col or prior.date_col
+    intent.dim_col = intent.dim_col or prior.dim_col
+    intent.agg = intent.agg or prior.agg
+
+    if intent.kind == "unsupported":
+        if " by " in q and intent.dim_col:
+            intent.kind = "breakdown"
+        elif any(s in q for s in ("trend", "over time", "monthly", "weekly")):
+            intent.kind = "trend"
+        elif any(s in q for s in ("top", "highest", "best", "worst")):
+            intent.kind = "ranking"
+        else:
+            intent.kind = prior.kind
+        intent.rationale = f"follow-up on prior {prior.kind} query"
+    return intent

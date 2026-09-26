@@ -39,3 +39,7 @@ class ChatOut(CamelModel):
     conversation_id: uuid.UUID
     message: MessageOut
     engine: str | None = None
+
+
+class PinIn(CamelModel):
+    dashboard_id: uuid.UUID

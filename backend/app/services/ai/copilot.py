@@ -23,7 +23,7 @@ from app.services.ai import (
     sql_validator,
 )
 from app.services.analytics import engine as aengine
-from app.services.ai.intent import detect_intent
+from app.services.ai.intent import detect_intent, merge_followup
 from app.services.ai.schema_context import build_schema_context
 from app.services.audit import audit
 
@@ -72,9 +72,13 @@ def answer_question(
     dataset: Dataset,
     version: DatasetVersion,
     ip: str | None,
+    prior_question: str | None = None,
 ) -> dict:
     ctx = build_schema_context(engine, dataset, version)
     intent = detect_intent(question, ctx)
+    if prior_question:
+        prior = detect_intent(prior_question, ctx)
+        intent = merge_followup(question, intent, prior)
     provider = llm_provider.get_provider()
 
     # Analytical intents bypass SQL generation — they're computed by
@@ -153,7 +157,19 @@ def answer_question(
         {k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in r.items()}
         for r in rows[:SNAPSHOT_ROWS]
     ]
-    result = {"columns": columns, "rows": clean_rows, "rowCount": len(rows)}
+    result = {
+        "columns": columns,
+        "rows": clean_rows,
+        "rowCount": len(rows),
+        "meta": {
+            "intent": intent.kind,
+            "metric": intent.metric_col,
+            "dim": intent.dim_col,
+            "dateCol": intent.date_col,
+            "bucket": intent.bucket,
+            "agg": intent.agg,
+        },
+    }
 
     chart = gen.get("chart")
     if len(rows) <= 1 and columns:

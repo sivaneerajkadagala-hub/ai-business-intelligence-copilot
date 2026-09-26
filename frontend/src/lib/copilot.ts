@@ -16,6 +16,14 @@ export type ChatMessage = {
     rows: Record<string, unknown>[];
     rowCount: number;
     series?: { t: string; value: number }[];
+    meta?: {
+      intent?: string;
+      metric?: string;
+      dim?: string;
+      dateCol?: string;
+      bucket?: string;
+      agg?: string;
+    };
   } | null;
   chartSpec: { type: string; x?: string; y?: string } | null;
   explanation: string | null;

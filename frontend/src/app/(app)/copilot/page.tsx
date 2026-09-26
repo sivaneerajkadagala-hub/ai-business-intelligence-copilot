@@ -55,6 +55,8 @@ export default function CopilotPage() {
   const [question, setQuestion] = useState("");
   const [saveTarget, setSaveTarget] = useState<ChatMessage | null>(null);
   const [saveName, setSaveName] = useState("");
+  const [pinTarget, setPinTarget] = useState<ChatMessage | null>(null);
+  const [pinDashboard, setPinDashboard] = useState<string | null>(null);
   // Optimistic messages for the current thread until the server copy
   // catches up (deduped against fetched messages by id / role+content).
   const [pending, setPending] = useState<ChatMessage[]>([]);
@@ -172,6 +174,34 @@ export default function CopilotPage() {
       toast.success("Query saved to library");
       setSaveTarget(null);
       setSaveName("");
+    },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+
+  const { data: dashboards } = useQuery({
+    queryKey: ["dashboards"],
+    queryFn: () =>
+      api<{ id: string; name: string; ownerId: string; isShared: boolean }[]>(
+        "/dashboards",
+      ),
+    enabled: !!pinTarget,
+  });
+  const editableDashboards = (dashboards ?? []).filter(
+    (d) => d.ownerId === user?.id || user?.role === "admin",
+  );
+  const pinMutation = useMutation({
+    mutationFn: () =>
+      api<{ dashboardId: string; dashboardName: string }>(
+        `/copilot/messages/${pinTarget?.id}/pin`,
+        {
+          method: "POST",
+          body: JSON.stringify({ dashboardId: pinDashboard }),
+        },
+      ),
+    onSuccess: (r) => {
+      toast.success(`Pinned to "${r.dashboardName}"`);
+      setPinTarget(null);
+      setPinDashboard(null);
     },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -321,6 +351,14 @@ export default function CopilotPage() {
                   <AssistantMessage
                     key={m.id}
                     msg={m}
+                    onPin={
+                      user?.role === "viewer"
+                        ? undefined
+                        : (msg) => {
+                            setPinTarget(msg);
+                            setPinDashboard(null);
+                          }
+                    }
                     onSaveQuery={
                       user?.role === "viewer"
                         ? undefined
@@ -385,6 +423,39 @@ export default function CopilotPage() {
               disabled={saveQueryMutation.isPending}
             >
               Save to library
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pinTarget} onOpenChange={(o) => !o && setPinTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pin to dashboard</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <Select value={pinDashboard ?? ""} onValueChange={(v) => setPinDashboard(v as string)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a dashboard" />
+              </SelectTrigger>
+              <SelectContent>
+                {editableDashboards.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!editableDashboards.length && (
+              <p className="text-sm text-muted-foreground">
+                No dashboards you can edit — create one on the Dashboards page.
+              </p>
+            )}
+            <Button
+              onClick={() => pinMutation.mutate()}
+              disabled={!pinDashboard || pinMutation.isPending}
+            >
+              Pin chart
             </Button>
           </div>
         </DialogContent>

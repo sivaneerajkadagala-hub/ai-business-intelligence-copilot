@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.routes import (
     analytics,
+    audit,
     auth,
     copilot,
     dashboards,
@@ -24,3 +25,4 @@ api_router.include_router(insights.router)
 api_router.include_router(dashboards.router)
 api_router.include_router(queries.router)
 api_router.include_router(reports.router)
+api_router.include_router(audit.router)

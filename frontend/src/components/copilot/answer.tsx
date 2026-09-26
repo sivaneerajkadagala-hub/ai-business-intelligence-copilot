@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookmarkPlus, ChevronDown, Code2 } from "lucide-react";
+import { BookmarkPlus, ChevronDown, Code2, LayoutDashboard } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -138,9 +138,11 @@ export function AnswerChart({ msg }: { msg: ChatMessage }) {
 export function AssistantMessage({
   msg,
   onSaveQuery,
+  onPin,
 }: {
   msg: ChatMessage;
   onSaveQuery?: (msg: ChatMessage) => void;
+  onPin?: (msg: ChatMessage) => void;
 }) {
   const [showSql, setShowSql] = useState(false);
   const snap = msg.resultSnapshot;
@@ -223,6 +225,19 @@ export function AssistantMessage({
               </Button>
             )}
           </div>
+          {onPin &&
+            msg.chartSpec &&
+            ["line", "bar"].includes(msg.chartSpec.type) &&
+            msg.resultSnapshot?.meta && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-2 mt-1 text-xs text-muted-foreground"
+                onClick={() => onPin(msg)}
+              >
+                <LayoutDashboard className="mr-1.5 size-3.5" /> Pin to dashboard
+              </Button>
+            )}
           {showSql && (
             <pre className="mt-1 overflow-x-auto rounded-md bg-muted p-3 text-xs">
               {msg.sql}
