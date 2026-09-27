@@ -17,6 +17,10 @@ def main() -> None:
     for ident in (settings.BI_READER_USER, settings.POSTGRES_DB):
         if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", ident):
             raise ValueError(f"unsafe identifier: {ident!r}")
+    # PG DDL can't bind params — the password is a deploy-generated
+    # secret; restrict it to chars that are safe inside a quoted literal.
+    if not re.fullmatch(r"[a-zA-Z0-9_\-]+", settings.BI_READER_PASSWORD):
+        raise ValueError("BI_READER_PASSWORD must be [a-zA-Z0-9_-] only")
     reader = settings.BI_READER_USER
 
     engine = create_engine(settings.database_url)
@@ -26,7 +30,7 @@ def main() -> None:
             text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": reader}
         ).scalar()
         if not exists:
-            conn.execute(text(f"CREATE ROLE {reader} LOGIN PASSWORD :p"), {"p": settings.BI_READER_PASSWORD})
+            conn.execute(text(f"CREATE ROLE {reader} LOGIN PASSWORD '{settings.BI_READER_PASSWORD}'"))
         conn.execute(text(f"GRANT CONNECT ON DATABASE {settings.POSTGRES_DB} TO {reader}"))
         conn.execute(text(f"GRANT USAGE ON SCHEMA data TO {reader}"))
         conn.execute(text(f"GRANT SELECT ON ALL TABLES IN SCHEMA data TO {reader}"))
