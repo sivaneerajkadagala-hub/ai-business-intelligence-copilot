@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         if self.DATABASE_URL:
+            # Hosted Postgres (Railway/Heroku-style) hands out postgres://
+            # or postgresql:// — normalize for the psycopg3 driver.
+            for prefix in ("postgres://", "postgresql://"):
+                if self.DATABASE_URL.startswith(prefix):
+                    return "postgresql+psycopg://" + self.DATABASE_URL[len(prefix):]
             return self.DATABASE_URL
         return (
             f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
