@@ -28,6 +28,10 @@ def _client_ip(request: Request) -> str | None:
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
+    # Migrate: a cookie minted before the path fix was scoped to
+    # /api/v1/auth and outranks the new one on auth endpoints —
+    # expire it so stale sessions can't shadow fresh logins.
+    response.delete_cookie(REFRESH_COOKIE, path="/api/v1/auth")
     response.set_cookie(
         REFRESH_COOKIE,
         token,
