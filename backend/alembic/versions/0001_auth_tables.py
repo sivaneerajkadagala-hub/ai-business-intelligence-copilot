@@ -15,7 +15,7 @@ down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-user_role = postgresql.ENUM("admin", "analyst", "viewer", name="user_role")
+user_role = postgresql.ENUM("admin", "analyst", "viewer", name="user_role", create_type=False)
 
 
 def upgrade() -> None:
