@@ -15,8 +15,8 @@ down_revision: str | Sequence[str] | None = "0002"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-query_status = postgresql.ENUM("success", "failed", "blocked", name="query_status")
-query_source = postgresql.ENUM("copilot", "manual", "widget", name="query_source")
+query_status = postgresql.ENUM("success", "failed", "blocked", name="query_status", create_type=False)
+query_source = postgresql.ENUM("copilot", "manual", "widget", name="query_source", create_type=False)
 
 
 def upgrade() -> None:

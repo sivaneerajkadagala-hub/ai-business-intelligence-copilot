@@ -15,8 +15,8 @@ down_revision: str | Sequence[str] | None = "0005"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-report_format = postgresql.ENUM("pdf", "csv", name="report_format")
-report_status = postgresql.ENUM("generating", "ready", "failed", name="report_status")
+report_format = postgresql.ENUM("pdf", "csv", name="report_format", create_type=False)
+report_status = postgresql.ENUM("generating", "ready", "failed", name="report_status", create_type=False)
 
 
 def upgrade() -> None:

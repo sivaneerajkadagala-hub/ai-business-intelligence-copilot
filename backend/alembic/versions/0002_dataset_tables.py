@@ -16,12 +16,12 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 dataset_status = postgresql.ENUM(
-    "uploaded", "profiling", "importing", "ready", "failed", name="dataset_status"
+    "uploaded", "profiling", "importing", "ready", "failed", name="dataset_status", create_type=False
 )
-file_type = postgresql.ENUM("csv", "xlsx", name="file_type")
-version_kind = postgresql.ENUM("original", "cleaned", name="version_kind")
+file_type = postgresql.ENUM("csv", "xlsx", name="file_type", create_type=False)
+version_kind = postgresql.ENUM("original", "cleaned", name="version_kind", create_type=False)
 import_status = postgresql.ENUM(
-    "pending", "running", "success", "failed", name="import_status"
+    "pending", "running", "success", "failed", name="import_status", create_type=False
 )
 
 

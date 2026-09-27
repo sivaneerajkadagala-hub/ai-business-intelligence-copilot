@@ -15,11 +15,11 @@ down_revision: str | Sequence[str] | None = "0003"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-message_role = postgresql.ENUM("user", "assistant", "system", name="message_role")
+message_role = postgresql.ENUM("user", "assistant", "system", name="message_role", create_type=False)
 insight_type = postgresql.ENUM(
-    "trend", "anomaly", "comparison", "ranking", "forecast", name="insight_type"
+    "trend", "anomaly", "comparison", "ranking", "forecast", name="insight_type", create_type=False
 )
-insight_severity = postgresql.ENUM("info", "warning", "critical", name="insight_severity")
+insight_severity = postgresql.ENUM("info", "warning", "critical", name="insight_severity", create_type=False)
 
 
 def upgrade() -> None:
